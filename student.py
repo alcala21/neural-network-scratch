@@ -55,6 +55,19 @@ def sigmoid(x: int | float | np.ndarray) -> float | np.ndarray:
     return 1 / (1 + np.exp(-x))
 
 
+def mse(x: np.ndarray, y: np.ndarray) -> float:
+    return np.mean((x - y) ** 2)
+
+
+def mse_der(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    return 2 * (x - y)
+
+
+def sigmoid_der(x: int | float | np.ndarray) -> float | np.ndarray:
+    f = sigmoid(x)
+    return f * (1 - f)
+
+
 class OneLayerNeural:
     def __init__(self, n_features: int, n_classes: int):
         self.weights = xavier(n_features, n_classes)
@@ -62,6 +75,12 @@ class OneLayerNeural:
 
     def forward(self, X: np.ndarray) -> np.ndarray:
         return sigmoid(X @ self.weights + self.bias)
+
+    def backprop(self, X: np.ndarray, y: np.ndarray, alpha: float):
+        yp = self.forward(X)
+        db = alpha * ((yp - y) * yp * (1 - yp))
+        self.weights -= X.T @ db
+        self.bias -= np.ones((1, X.shape[0])) @ db
 
 
 if __name__ == "__main__":
@@ -100,5 +119,14 @@ if __name__ == "__main__":
     n_feats = X_train.shape[1]
 
     net = OneLayerNeural(n_feats, 10)
-    res = net.forward(X_train[:2])
-    print(res.flatten().tolist())
+    net.backprop(X_train[:2], y_train[:2], alpha=0.1)
+    y_pred = net.forward(X_train[:2])
+    r1 = (
+        mse(a1 := np.array([-1, 0, 1, 2]), a2 := np.array([4, 3, 2, 1]))
+        .flatten()
+        .tolist()
+    )
+    r2 = mse_der(a1, a2).flatten().tolist()
+    r3 = sigmoid_der(a1).flatten().tolist()
+    r4 = mse(y_pred, y_train[:2]).flatten().tolist()
+    print(r1, r2, r3, r4)
