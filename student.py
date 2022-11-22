@@ -64,8 +64,7 @@ def mse_der(x: np.ndarray, y: np.ndarray) -> np.ndarray:
 
 
 def sigmoid_der(x: int | float | np.ndarray) -> float | np.ndarray:
-    f = sigmoid(x)
-    return f * (1 - f)
+    return np.exp(-x) / (1 + np.exp(-x)) ** 2
 
 
 class OneLayerNeural:
@@ -77,10 +76,30 @@ class OneLayerNeural:
         return sigmoid(X @ self.weights + self.bias)
 
     def backprop(self, X: np.ndarray, y: np.ndarray, alpha: float):
+        n = X.shape[0]
         yp = self.forward(X)
-        db = alpha * ((yp - y) * yp * (1 - yp))
+        db = 2 * alpha / n * ((yp - y) * yp * (1 - yp))
         self.weights -= X.T @ db
-        self.bias -= np.ones((1, X.shape[0])) @ db
+        self.bias -= np.ones((1, n)) @ db
+
+
+def epoch_training(
+    net: OneLayerNeural,
+    X: np.ndarray,
+    y: np.ndarray,
+    alpha: float,
+    batch_size: int = 100,
+):
+    n = X.shape[0]
+    for i in range(n // batch_size):
+        X_t = X[batch_size * i : batch_size * (i + 1)]
+        y_t = y[batch_size * i : batch_size * (i + 1)]
+        net.backprop(X_t, y_t, alpha)
+
+
+def accuracy(model: OneLayerNeural, X: np.ndarray, y: np.ndarray) -> float:
+    yp = model.forward(X).argmax(axis=1)
+    return sum(yp == y.argmax(axis=1)) / y.shape[0]
 
 
 if __name__ == "__main__":
@@ -119,14 +138,9 @@ if __name__ == "__main__":
     n_feats = X_train.shape[1]
 
     net = OneLayerNeural(n_feats, 10)
-    net.backprop(X_train[:2], y_train[:2], alpha=0.1)
-    y_pred = net.forward(X_train[:2])
-    r1 = (
-        mse(a1 := np.array([-1, 0, 1, 2]), a2 := np.array([4, 3, 2, 1]))
-        .flatten()
-        .tolist()
-    )
-    r2 = mse_der(a1, a2).flatten().tolist()
-    r3 = sigmoid_der(a1).flatten().tolist()
-    r4 = mse(y_pred, y_train[:2]).flatten().tolist()
-    print(r1, r2, r3, r4)
+    r1 = accuracy(net, X_test, y_test).flatten().tolist()
+    r2 = []
+    for _ in range(20):
+        epoch_training(net, X_train, y_train, 0.5)
+        r2.append(accuracy(net, X_test, y_test))
+    print(r1, r2)
