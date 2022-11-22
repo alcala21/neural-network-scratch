@@ -6,29 +6,6 @@ from matplotlib import pyplot as plt
 
 
 # scroll to the bottom to start coding your solution
-
-
-def one_hot(data: np.ndarray) -> np.ndarray:
-    y_train = np.zeros((data.size, data.max() + 1))
-    rows = np.arange(data.size)
-    y_train[rows, data] = 1
-    return y_train
-
-
-def scale(X_train, X_test):
-    max_val = max(X_train.max(), X_test.max())
-    return X_train / max_val, X_test / max_val
-
-
-def xavier(n_in, n_out):
-    val = np.sqrt(6 / (n_in + n_out))
-    return np.random.uniform(-val, val, (n_in, n_out))
-
-
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
-
-
 def plot(loss_history: list, accuracy_history: list, filename="plot"):
 
     # function to visualize learning process at stage 4
@@ -55,6 +32,36 @@ def plot(loss_history: list, accuracy_history: list, filename="plot"):
     plt.grid()
 
     plt.savefig(f"{filename}.png")
+
+
+def one_hot(data: np.ndarray) -> np.ndarray:
+    y_train = np.zeros((data.size, data.max() + 1))
+    rows = np.arange(data.size)
+    y_train[rows, data] = 1
+    return y_train
+
+
+def scale(X_train: np.ndarray, X_test: np.ndarray) -> np.ndarray:
+    max_val = max(X_train.max(), X_test.max())
+    return X_train / max_val, X_test / max_val
+
+
+def xavier(n_in: int, n_out: int) -> np.ndarray:
+    val = np.sqrt(6 / (n_in + n_out))
+    return np.random.uniform(-val, val, (n_in, n_out))
+
+
+def sigmoid(x: int | float | np.ndarray) -> float | np.ndarray:
+    return 1 / (1 + np.exp(-x))
+
+
+class OneLayerNeural:
+    def __init__(self, n_features: int, n_classes: int):
+        self.weights = xavier(n_features, n_classes)
+        self.bias = xavier(1, n_classes)
+
+    def forward(self, X: np.ndarray) -> np.ndarray:
+        return sigmoid(X @ self.weights + self.bias)
 
 
 if __name__ == "__main__":
@@ -90,8 +97,8 @@ if __name__ == "__main__":
 
     # write your code here
     X_train, X_test = scale(X_train, X_test)
-    r1 = [X_train[2, 778], X_test[0, 774]]
-    r2 = xavier(2, 3).flatten().tolist()
-    r3 = sigmoid(np.array([-1, 0, 1, 2])).flatten().tolist()
+    n_feats = X_train.shape[1]
 
-    print(r1, r2, r3)
+    net = OneLayerNeural(n_feats, 10)
+    res = net.forward(X_train[:2])
+    print(res.flatten().tolist())
