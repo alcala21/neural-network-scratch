@@ -83,25 +83,6 @@ class OneLayerNeural:
         self.bias -= np.ones((1, n)) @ db
 
 
-def epoch_training(
-    net: OneLayerNeural,
-    X: np.ndarray,
-    y: np.ndarray,
-    alpha: float,
-    batch_size: int = 100,
-):
-    n = X.shape[0]
-    for i in range(n // batch_size):
-        X_t = X[batch_size * i : batch_size * (i + 1)]
-        y_t = y[batch_size * i : batch_size * (i + 1)]
-        net.backprop(X_t, y_t, alpha)
-
-
-def accuracy(model: OneLayerNeural, X: np.ndarray, y: np.ndarray) -> float:
-    yp = model.forward(X).argmax(axis=1)
-    return sum(yp == y.argmax(axis=1)) / y.shape[0]
-
-
 class TwoLayerNeural:
     def __init__(self, n_features: int, n_classes: int):
         self.weights = [xavier(n_features, 64), xavier(64, n_classes)]
@@ -126,6 +107,25 @@ class TwoLayerNeural:
 
         self.bias[0] -= vec_ones @ db0
         self.bias[1] -= vec_ones @ db1
+
+
+def epoch_training(
+    net: OneLayerNeural | TwoLayerNeural,
+    X: np.ndarray,
+    y: np.ndarray,
+    alpha: float,
+    batch_size: int = 100,
+):
+    n = X.shape[0]
+    for i in range(n // batch_size):
+        X_t = X[batch_size * i : batch_size * (i + 1)]
+        y_t = y[batch_size * i : batch_size * (i + 1)]
+        net.backprop(X_t, y_t, alpha)
+
+
+def accuracy(model: OneLayerNeural, X: np.ndarray, y: np.ndarray) -> float:
+    yp = model.forward(X).argmax(axis=1)
+    return sum(yp == y.argmax(axis=1)) / y.shape[0]
 
 
 if __name__ == "__main__":
@@ -165,7 +165,8 @@ if __name__ == "__main__":
     n_class = y_train.shape[1]
 
     net = TwoLayerNeural(n_feats, n_class)
-    net.backprop(X_train[:2], y_train[:2], alpha=0.1)
-    y_pred = net.forward(X_train[:2])
-    r1 = mse(y_pred, y_train[:2]).flatten().tolist()
+    r1 = []
+    for _ in range(20):
+        epoch_training(net, X_train, y_train, alpha=0.5)
+        r1.append(accuracy(net, X_test, y_test))
     print(r1)
