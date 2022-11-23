@@ -102,6 +102,32 @@ def accuracy(model: OneLayerNeural, X: np.ndarray, y: np.ndarray) -> float:
     return sum(yp == y.argmax(axis=1)) / y.shape[0]
 
 
+class TwoLayerNeural:
+    def __init__(self, n_features: int, n_classes: int):
+        self.weights = [xavier(n_features, 64), xavier(64, n_classes)]
+        self.bias = [xavier(1, 64), xavier(1, n_classes)]
+
+    def forward(self, X: np.ndarray) -> np.ndarray:
+        z = X
+        for i in range(2):
+            z = sigmoid(z @ self.weights[i] + self.bias[i])
+        return z
+
+    def backprop(self, X: np.ndarray, y: np.ndarray, alpha: float):
+        n = X.shape[0]
+        vec_ones = np.ones((1, n))
+        yp = self.forward(X)
+        db1 = 2 * alpha / n * ((yp - y) * yp * (1 - yp))
+        f1 = sigmoid(X @ self.weights[0] + self.bias[0])
+        db0 = (db1 @ self.weights[1].T) * f1 * (1 - f1)
+
+        self.weights[0] -= X.T @ db0
+        self.weights[1] -= f1.T @ db1
+
+        self.bias[0] -= vec_ones @ db0
+        self.bias[1] -= vec_ones @ db1
+
+
 if __name__ == "__main__":
 
     if not os.path.exists("../Data"):
@@ -136,11 +162,10 @@ if __name__ == "__main__":
     # write your code here
     X_train, X_test = scale(X_train, X_test)
     n_feats = X_train.shape[1]
+    n_class = y_train.shape[1]
 
-    net = OneLayerNeural(n_feats, 10)
-    r1 = accuracy(net, X_test, y_test).flatten().tolist()
-    r2 = []
-    for _ in range(20):
-        epoch_training(net, X_train, y_train, 0.5)
-        r2.append(accuracy(net, X_test, y_test))
-    print(r1, r2)
+    net = TwoLayerNeural(n_feats, n_class)
+    net.backprop(X_train[:2], y_train[:2], alpha=0.1)
+    y_pred = net.forward(X_train[:2])
+    r1 = mse(y_pred, y_train[:2]).flatten().tolist()
+    print(r1)
